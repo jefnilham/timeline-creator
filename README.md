@@ -1,1 +1,1 @@
-use this to replace making iamges on powerpoint
+use this to replace making imges on powerpoint of your project timelines
