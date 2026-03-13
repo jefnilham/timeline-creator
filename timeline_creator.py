@@ -5,12 +5,15 @@ from matplotlib.offsetbox import AnnotationBbox, TextArea, VPacker
 import numpy as np
 import textwrap
 from datetime import datetime
+import os
 
 # 1. Load and Clean Data
+csv_input = 'test_data - 5 year.csv' 
+
 try:
-    df = pd.read_csv('test_data - 5 year.csv')
+    df = pd.read_csv(csv_input)
 except FileNotFoundError:
-    print("Error: test_data - Copy.csv not found.")
+    print(f"Error: {csv_input} not found.")
     exit()
 
 df['Date'] = pd.to_datetime(df['Date'], format='%d-%b-%y', errors='coerce')
@@ -18,11 +21,10 @@ df = df.dropna(subset=['Date']).reset_index(drop=True)
 df = df.sort_values('Date')
 
 # 3. Setup Figure
-fig, ax = plt.subplots(figsize=(24, 12)) # Kept wider for 5-year span
+fig, ax = plt.subplots(figsize=(24, 12)) 
 
 # 4. FY Logic Helpers
 def get_fy_info(dt):
-    # April start logic
     fy_year = dt.year + 1 if dt.month >= 4 else dt.year
     fy_q = ((dt.month - 4) % 12) // 3 + 1
     return fy_year, fy_q
@@ -46,20 +48,15 @@ while current_q <= end_q_limit + pd.DateOffset(months=3):
     next_q = current_q + pd.DateOffset(months=3)
     fy_year, fy_q = get_fy_info(current_q)
     
-    # Background Shading
     ax.axvspan(mdates.date2num(current_q), mdates.date2num(next_q), 
                facecolor=colors[0 if (current_q.month // 3) % 2 == 0 else 1], zorder=0)
     
     mid_date = current_q + (next_q - current_q) / 2
     
-    # 1. Place the "Q1", "Q2" etc. directly on the axis
     ax.text(mid_date, -0.6, f"Q{fy_q}", ha='center', va='top', 
             color='#495057', fontsize=11, fontweight='bold')
     
-    # 2. Place the "FYXX" label only once per year (above the Q labels)
-    # We'll center it between Q2 and Q3 (roughly July/Oct period)
     if fy_q == 2:
-        # Shift slightly right to be between Q2 and Q3
         fy_mid_pos = current_q + pd.DateOffset(months=3) 
         ax.text(fy_mid_pos, -1.4, f"FY{str(fy_year)[2:]}", ha='center', va='top', 
                 color='#212529', fontsize=14, fontweight='black')
@@ -102,10 +99,11 @@ for s in ["left", "top", "right", "bottom"]:
 plt.title("Strategic Project Roadmap", pad=100, fontsize=24, fontweight='bold')
 plt.tight_layout()
 
-# 10. Save
+# 10. Save with CSV name + Timestamp
+base_name = os.path.splitext(csv_input)[0]  # Extracts 'test_data - 1 year'
 timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
-filename = f"timeline_fy_grouped_{timestamp}.png"
+filename = f"{base_name}_{timestamp}.png"
+
 plt.savefig(filename, dpi=300, bbox_inches='tight')
 print(f"Generated: {filename}")
 plt.show()
-
